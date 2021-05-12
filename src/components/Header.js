@@ -61,7 +61,7 @@ export default function Header(){
                   </button>
                   <div className="flex items-center cursor-pointer">
                     <Link to={`/p/${user.displayName}`}>
-                      <img src={`/images/avatars/${user.displayName}.jpg`} alt={`${user.displayName} profile picture`} className="rounded-full h-8 w-8 flex"/>
+                      <img src={`/images/avatars/${user.displayName}.jpg`} alt={`${user.displayName} profile`} className="rounded-full h-8 w-8 flex"/>
                     </Link>
                   </div>
                 </>
