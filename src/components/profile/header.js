@@ -2,7 +2,7 @@ import {useEffect, useState} from "react";
 import PropTypes from "prop-types";
 import Skeleton from 'react-loading-skeleton';
 import useUser from "../../hooks/use-user";
-import {isUserFollowingProfile} from "../../services/firebase";
+import {isUserFollowingProfile, toggleFollow} from "../../services/firebase";
 
 export default function Header({
   photosCount,
@@ -12,19 +12,21 @@ export default function Header({
     docId: profileDocId,
     userId: profileUserId,
     fullName,
-    following = [],
     followers = [],
+    following = [],
     username:profileUsername}}
 ) {
   const { user } = useUser()
   const [isFollowingProfile, setIsFollowingProfile] = useState(false)
   const activeBtnFollow = user.username && user.username !== profileUsername
   
-  const handleToggleFollow = () => {
+  const handleToggleFollow = async () => {
     setIsFollowingProfile((isFollowingProfile) => !isFollowingProfile)
     setFollowerCount({
-      followerCount: isFollowingProfile ? followers.length - 1 : followers.length + 1
+      followerCount: isFollowingProfile ? followerCount - 1 : followerCount + 1
     })
+
+    await toggleFollow(isFollowingProfile, user.docId, profileDocId, profileUserId, user.userId)
   }
 
   useEffect(()=> {
@@ -75,8 +77,8 @@ export default function Header({
                 <span className="font-bold">{photosCount}</span> photos
               </p>
               <p className="mr-10">
-                <span className="font-bold">{followers.length}</span> {` `}
-                {followers.length === 1 ? `follower` : `followers`}
+                <span className="font-bold">{followerCount}</span> {` `}
+                {followerCount === 1 ? `follower` : `followers`}
               </p>
               <p className="mr-10">
                 <span className="font-bold">{following.length}</span> following
