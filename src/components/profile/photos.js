@@ -56,5 +56,5 @@ export default function Photos({photos}) {
 }
 
 Photos.propTypes = {
-  // photos: PropTypes.array
+  photos: PropTypes.array
 };
