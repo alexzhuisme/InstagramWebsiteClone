@@ -1,30 +1,28 @@
-import {useEffect} from "react";
+import { useEffect } from 'react';
 import PropTypes from 'prop-types';
-import Header from "../components/Header";
-import Timeline from "../components/timeline";
-import Sidebar from "../components/sidebar";
-import useUser from "../hooks/use-user";
-import LoggedInUserContext from "../context/logged-in-user";
+import Header from '../components/header';
+import Timeline from '../components/timeline';
+import Sidebar from '../components/sidebar';
+import useUser from '../hooks/use-user';
+import LoggedInUserContext from '../context/logged-in-user';
 
-export default function Dashboard({user: loggedInUser}) {
-  const {user, setActiveUser} = useUser(loggedInUser.uid)
+export default function Dashboard({ user: loggedInUser }) {
+  const { user, setActiveUser } = useUser(loggedInUser.uid);
   useEffect(() => {
-    document.title = "Instagram"
-  }, [])
+    document.title = 'Instagram';
+  }, []);
 
   return (
-    <LoggedInUserContext.Provider value={{user,setActiveUser}}>
+    <LoggedInUserContext.Provider value={{ user, setActiveUser }}>
       <div className="bg-gray-background">
-        {/* eslint-disable-next-line react/jsx-no-undef */}
-        <Header/>
-        <div className="grid grid-cols-3 gap-4 justify-between mx-auto max-w-screen-lg ">
-          <Timeline/>
-          <Sidebar/>
+        <Header />
+        <div className="grid grid-cols-3 gap-4 justify-between mx-auto max-w-screen-lg">
+          <Timeline />
+          <Sidebar />
         </div>
       </div>
     </LoggedInUserContext.Provider>
-
-  )
+  );
 }
 
 Dashboard.propTypes = {

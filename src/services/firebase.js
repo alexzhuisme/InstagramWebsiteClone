@@ -1,13 +1,13 @@
-import {firebase, FieldValue} from "../lib/firebase";
+import { firebase, FieldValue } from '../lib/firebase';
 
 export async function doesUsernameExist(username) {
   const result = await firebase
     .firestore()
     .collection('users')
     .where('username', '==', username)
-    .get()
+    .get();
 
-  return result.docs.map((user) => user.data().length > 0)
+  return result.docs.length > 0;
 }
 
 export async function getUserByUsername(username) {
@@ -15,71 +15,49 @@ export async function getUserByUsername(username) {
     .firestore()
     .collection('users')
     .where('username', '==', username)
-    .get()
-
-  return result.docs.map((item) => ({
-    ...item.data(),
-    docId:item.id
-  }))
-
-}
-
-// export async function getUserIdByUsername(username) {
-//   const result = await firebase
-//     .firestore()
-//     .collection('users')
-//     .where()
-// }
-
-export async function getUserPhotosByUsername(username) {
-  const [user] = await getUserByUsername(username)
-  const result = await firebase
-    .firestore()
-    .collection('photos')
-    .where('userId', '==', user.userId)
-    .get()
+    .get();
 
   return result.docs.map((item) => ({
     ...item.data(),
     docId: item.id
-  }))
-
+  }));
 }
 
-//get user from the firestore where userId === userId (passed from the auth)
+// get user from the firestore where userId === userId (passed from the auth)
 export async function getUserByUserId(userId) {
-  const result = await firebase
-    .firestore()
-    .collection('users')
-    .where('userId', '==', userId)
-    .get()
-
+  const result = await firebase.firestore().collection('users').where('userId', '==', userId).get();
   const user = result.docs.map((item) => ({
     ...item.data(),
     docId: item.id
-  }))
+  }));
 
   return user;
 }
 
+// check all conditions before limit results
 export async function getSuggestedProfiles(userId, following) {
-  const result = await firebase
-    .firestore()
-    .collection('users')
-    .limit(10)
-    .get()
+  let query = firebase.firestore().collection('users');
 
-  return result.docs
-    .map((user) => ({...user.data(), docId: user.id}))
-    .filter( (profile) => profile.userId !== userId && !following.includes(profile.userId))
+  if (following.length > 0) {
+    query = query.where('userId', 'not-in', [...following, userId]);
+  } else {
+    query = query.where('userId', '!=', userId);
+  }
+  const result = await query.limit(10).get();
+
+  const profiles = result.docs.map((user) => ({
+    ...user.data(),
+    docId: user.id
+  }));
+
+  return profiles;
 }
 
-// updateLoggedInUserFollowing updatedFollowedUserFollowers
 export async function updateLoggedInUserFollowing(
-  loggedInUserDocId, // currently logged in user document id (alex's profile)
-  profileId, // the user that alex requests to follow
+  loggedInUserDocId, // currently logged in user document id (My profile)
+  profileId, // the user that I request to follow
   isFollowingProfile // true/false (am i currently following this person?)
-){
+) {
   return firebase
     .firestore()
     .collection('users')
@@ -88,14 +66,14 @@ export async function updateLoggedInUserFollowing(
       following: isFollowingProfile
         ? FieldValue.arrayRemove(profileId)
         : FieldValue.arrayUnion(profileId)
-    })
+    });
 }
 
-export async function updatedFollowedUserFollowers(
-  profileDocId, // currently logged in user document id (alex's profile)
-  loggedInUserDocId, // the user that alex requests to follow
+export async function updateFollowedUserFollowers(
+  profileDocId, // currently logged in user document id (my profile)
+  loggedInUserDocId, // the user that i request to follow
   isFollowingProfile // true/false (am i currently following this person?)
-){
+) {
   return firebase
     .firestore()
     .collection('users')
@@ -104,12 +82,12 @@ export async function updatedFollowedUserFollowers(
       followers: isFollowingProfile
         ? FieldValue.arrayRemove(loggedInUserDocId)
         : FieldValue.arrayUnion(loggedInUserDocId)
-    })
+    });
 }
 
-export async function getPhotos(userId, following){
+export async function getPhotos(userId, following) {
   // [5,4,2] => following
-  const result = await  firebase
+  const result = await firebase
     .firestore()
     .collection('photos')
     .where('userId', 'in', following)
@@ -118,39 +96,53 @@ export async function getPhotos(userId, following){
   const userFollowedPhotos = result.docs.map((photo) => ({
     ...photo.data(),
     docId: photo.id
-  }))
+  }));
 
   const photosWithUserDetails = await Promise.all(
-    userFollowedPhotos.map(async (photo)=>{
+    userFollowedPhotos.map(async (photo) => {
       let userLikedPhoto = false;
       if (photo.likes.includes(userId)) {
-        userLikedPhoto = true
+        userLikedPhoto = true;
       }
       // photo.userId = 2
-      const user = await  getUserByUserId(photo.userId)
-      //raphael
-      const {username} = user[0];
-      return {username, ...photo, userLikedPhoto}
+      const user = await getUserByUserId(photo.userId);
+      // raphael
+      const { username } = user[0];
+      return { username, ...photo, userLikedPhoto };
     })
-  )
+  );
 
-  return photosWithUserDetails
+  return photosWithUserDetails;
+}
+
+export async function getUserPhotosByUserId(userId) {
+  const result = await firebase
+    .firestore()
+    .collection('photos')
+    .where('userId', '==', userId)
+    .get();
+
+  const photos = result.docs.map((photo) => ({
+    ...photo.data(),
+    docId: photo.id
+  }));
+  return photos;
 }
 
 export async function isUserFollowingProfile(loggedInUserUsername, profileUserId) {
   const result = await firebase
     .firestore()
     .collection('users')
-    .where('username', '==', loggedInUserUsername)
+    .where('username', '==', loggedInUserUsername) // me (active logged in user)
     .where('following', 'array-contains', profileUserId)
-    .get()
+    .get();
 
   const [response = {}] = result.docs.map((item) => ({
     ...item.data(),
-    docId:item.id
-  }))
+    docId: item.id
+  }));
 
-  return response.userId
+  return response.userId;
 }
 
 export async function toggleFollow(
@@ -160,13 +152,13 @@ export async function toggleFollow(
   profileUserId,
   followingUserId
 ) {
-  // 1st param: alex's doc id
+  // 1st param: my doc id
   // 2nd param: raphael's user id
-  // 3rd param: is the user following this profile? e.g. does alex follow raphael? (true/false)
-  await updateLoggedInUserFollowing(activeUserDocId, profileUserId, isFollowingProfile)
+  // 3rd param: is the user following this profile? e.g. do i follow raphael? (true/false)
+  await updateLoggedInUserFollowing(activeUserDocId, profileUserId, isFollowingProfile);
 
-  // 1st param: alex's user id
+  // 1st param: my user id
   // 2nd param: raphael's doc id
-  // 3rd param: is the user following this profile? e.g. does alex follow raphael? (true/false)
-  await updatedFollowedUserFollowers(profileDocId, followingUserId, isFollowingProfile)
+  // 3rd param: is the user following this profile? e.g. do i follow raphael? (true/false)
+  await updateFollowedUserFollowers(profileDocId, followingUserId, isFollowingProfile);
 }

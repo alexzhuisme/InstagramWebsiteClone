@@ -1,9 +1,11 @@
-import {useContext, useEffect, useState} from "react";
-import PropTypes from "prop-types";
+/* eslint-disable jsx-a11y/img-redundant-alt */
+import { useState, useEffect, useContext } from 'react';
+import PropTypes from 'prop-types';
 import Skeleton from 'react-loading-skeleton';
-import useUser from "../../hooks/use-user";
-import {isUserFollowingProfile, toggleFollow} from "../../services/firebase";
-import UserContext from "../../context/user";
+import useUser from '../../hooks/use-user';
+import { isUserFollowingProfile, toggleFollow } from '../../services/firebase';
+import UserContext from '../../context/user';
+import { DEFAULT_IMAGE_PATH } from '../../constants/paths';
 
 export default function Header({
   photosCount,
@@ -15,85 +17,96 @@ export default function Header({
     fullName,
     followers,
     following,
-    username:profileUsername}}
-) {
-  const {user: loggedInUser} = useContext(UserContext)
-  const { user } = useUser(loggedInUser?.uid)
-  const [isFollowingProfile, setIsFollowingProfile] = useState(false)
-  const activeBtnFollow = user?.username && user?.username !== profileUsername
-  
+    username: profileUsername
+  }
+}) {
+  const { user: loggedInUser } = useContext(UserContext);
+  const { user } = useUser(loggedInUser?.uid);
+  const [isFollowingProfile, setIsFollowingProfile] = useState(null);
+  const activeBtnFollow = user?.username && user?.username !== profileUsername;
+
   const handleToggleFollow = async () => {
-    setIsFollowingProfile((isFollowingProfile) => !isFollowingProfile)
+    setIsFollowingProfile((isFollowingProfile) => !isFollowingProfile);
     setFollowerCount({
       followerCount: isFollowingProfile ? followerCount - 1 : followerCount + 1
-    })
+    });
+    await toggleFollow(isFollowingProfile, user.docId, profileDocId, profileUserId, user.userId);
+  };
 
-    await toggleFollow(isFollowingProfile, user.docId, profileDocId, profileUserId, user.userId)
-  }
-
-  useEffect(()=> {
+  useEffect(() => {
     const isLoggedInUserFollowingProfile = async () => {
-      const isFollowing = await isUserFollowingProfile(user.username, profileUserId)
-      setIsFollowingProfile(!!isFollowing)
-    }
+      const isFollowing = await isUserFollowingProfile(user.username, profileUserId);
+      setIsFollowingProfile(!!isFollowing);
+    };
 
     if (user?.username && profileUserId) {
-      isLoggedInUserFollowingProfile()
+      isLoggedInUserFollowingProfile();
     }
-  },[user?.username, profileUserId])
+  }, [user?.username, profileUserId]);
 
   return (
-    <div className="grid grid-cols-3 gap-4 justify-between max-auto max-w-screen-lg">
+    <div className="grid grid-cols-3 gap-4 justify-between mx-auto max-w-screen-lg">
       <div className="container flex justify-center items-center">
-        {user.username && (
+        {profileUsername ? (
           <img
+            className="rounded-full h-40 w-40 flex"
+            alt={`${fullName} profile picture`}
             src={`/images/avatars/${profileUsername}.jpg`}
-            alt={`${profileUsername} profile`}
-            className="rounded-full h-40 w-40 flex"/>)
-        }
+            onError={(e) => {
+              e.target.src = DEFAULT_IMAGE_PATH;
+            }}
+          />
+        ) : (
+          <Skeleton circle height={150} width={150} count={1} />
+        )}
       </div>
       <div className="flex items-center justify-center flex-col col-span-2">
         <div className="container flex items-center">
           <p className="text-2xl mr-4">{profileUsername}</p>
-          {activeBtnFollow && (
-            <button
-              className="bg-blue-medium font-bold text-sm rounded text-white w-20 h-8"
-              type="button"
-              onClick={handleToggleFollow}
-              onKeyDown={(event)=> {
-               if (event.key === "Enter") {
-                 handleToggleFollow()
-               }
-              }}
-            >
-              {isFollowingProfile ? "Unfollow" : "Follow"}
-            </button>
+          {activeBtnFollow && isFollowingProfile === null ? (
+            <Skeleton count={1} width={80} height={32} />
+          ) : (
+            activeBtnFollow && (
+              <button
+                className="bg-blue-medium font-bold text-sm rounded text-white w-20 h-8"
+                type="button"
+                onClick={handleToggleFollow}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    handleToggleFollow();
+                  }
+                }}
+              >
+                {isFollowingProfile ? 'Unfollow' : 'Follow'}
+              </button>
+            )
           )}
         </div>
-        <div className="container flex mt-4 ">
-          {followers === undefined || following === undefined ? (
-            <Skeleton count={1} width={677} height={24}/>
+        <div className="container flex mt-4">
+          {!followers || !following ? (
+            <Skeleton count={1} width={677} height={24} />
           ) : (
             <>
               <p className="mr-10">
                 <span className="font-bold">{photosCount}</span> photos
               </p>
               <p className="mr-10">
-                <span className="font-bold">{followerCount}</span> {` `}
+                <span className="font-bold">{followerCount}</span>
+                {` `}
                 {followerCount === 1 ? `follower` : `followers`}
               </p>
               <p className="mr-10">
-                <span className="font-bold">{following.length}</span> following
+                <span className="font-bold">{following?.length}</span> following
               </p>
             </>
           )}
         </div>
         <div className="container mt-4">
-          <p className="font-medium">{!fullName ? <Skeleton count={1} height={24}/> : fullName}</p>
+          <p className="font-medium">{!fullName ? <Skeleton count={1} height={24} /> : fullName}</p>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 Header.propTypes = {
