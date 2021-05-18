@@ -1,8 +1,9 @@
-import {useEffect, useState} from "react";
+import {useContext, useEffect, useState} from "react";
 import PropTypes from "prop-types";
 import Skeleton from 'react-loading-skeleton';
 import useUser from "../../hooks/use-user";
 import {isUserFollowingProfile, toggleFollow} from "../../services/firebase";
+import UserContext from "../../context/user";
 
 export default function Header({
   photosCount,
@@ -12,13 +13,14 @@ export default function Header({
     docId: profileDocId,
     userId: profileUserId,
     fullName,
-    followers = [],
-    following = [],
+    followers,
+    following,
     username:profileUsername}}
 ) {
-  const { user } = useUser()
+  const {user: loggedInUser} = useContext(UserContext)
+  const { user } = useUser(loggedInUser?.uid)
   const [isFollowingProfile, setIsFollowingProfile] = useState(false)
-  const activeBtnFollow = user.username && user.username !== profileUsername
+  const activeBtnFollow = user?.username && user?.username !== profileUsername
   
   const handleToggleFollow = async () => {
     setIsFollowingProfile((isFollowingProfile) => !isFollowingProfile)
@@ -42,7 +44,7 @@ export default function Header({
 
   return (
     <div className="grid grid-cols-3 gap-4 justify-between max-auto max-w-screen-lg">
-      <div className="container flex justify-center">
+      <div className="container flex justify-center items-center">
         {user.username && (
           <img
             src={`/images/avatars/${profileUsername}.jpg`}
